@@ -97,15 +97,37 @@ export class Gitlin {
         return false;
       }
 
-      // Verify GitHub
-      const { data: user } = await this.octokit.users.getAuthenticated();
-      console.log(`✅ Connected to GitHub as: ${user.login}`);
+      // Note: We don't verify GitHub here because GITHUB_TOKEN in Actions
+      // doesn't have 'user' scope. We only need it to post comments which
+      // will be verified when we actually try to post.
 
       console.log("✅ All API connections verified");
       return true;
     } catch (error) {
       console.error("❌ Verification failed:", error);
       return false;
+    }
+  }
+
+  /**
+   * Add a reaction to a comment (for status updates)
+   */
+  async addReaction(
+    owner: string,
+    repo: string,
+    commentId: number,
+    reaction: "+1" | "-1" | "laugh" | "confused" | "heart" | "hooray" | "rocket" | "eyes",
+  ): Promise<void> {
+    try {
+      await this.octokit.reactions.createForIssueComment({
+        owner,
+        repo,
+        comment_id: commentId,
+        content: reaction,
+      });
+    } catch (error) {
+      console.error(`Failed to add reaction: ${error}`);
+      // Don't fail the whole process if reaction fails
     }
   }
 }
@@ -160,17 +182,42 @@ export async function main() {
     prDescription: process.env.PR_DESCRIPTION,
   };
 
-  // Process the comment
-  const response = await bot.processComment(context);
-
-  // Post response to GitHub
   const issueNumber = context.prNumber || context.issueNumber;
-  if (issueNumber) {
-    await bot.postComment(context.owner, context.repo, issueNumber, response);
-    console.log("✅ Posted response to GitHub");
-  }
+  const commentId = process.env.COMMENT_ID
+    ? parseInt(process.env.COMMENT_ID, 10)
+    : undefined;
 
-  console.log("\n" + response);
+  try {
+    // Add "eyes" reaction to show we're processing
+    if (commentId) {
+      await bot.addReaction(context.owner, context.repo, commentId, "eyes");
+      console.log("👀 Added 'eyes' reaction to show processing...");
+    }
+
+    // Process the comment
+    const response = await bot.processComment(context);
+
+    // Add "rocket" reaction on success
+    if (commentId) {
+      await bot.addReaction(context.owner, context.repo, commentId, "rocket");
+      console.log("🚀 Added 'rocket' reaction to show success!");
+    }
+
+    // Post response to GitHub
+    if (issueNumber) {
+      await bot.postComment(context.owner, context.repo, issueNumber, response);
+      console.log("✅ Posted response to GitHub");
+    }
+
+    console.log("\n" + response);
+  } catch (error) {
+    // Add "confused" reaction on error
+    if (commentId) {
+      await bot.addReaction(context.owner, context.repo, commentId, "confused");
+      console.log("😕 Added 'confused' reaction to show error");
+    }
+    throw error;
+  }
 }
 
 // Run if called directly

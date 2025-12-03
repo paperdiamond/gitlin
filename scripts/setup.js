@@ -216,6 +216,7 @@ jobs:
           GITHUB_REPOSITORY_OWNER: \${{ github.repository_owner }}
           GITHUB_REPOSITORY: \${{ github.repository }}
           COMMENT_BODY: \${{ github.event.comment.body }}
+          COMMENT_ID: \${{ github.event.comment.id }}
           PR_NUMBER: \${{ github.event.issue.pull_request && github.event.issue.number || '' }}
           ISSUE_NUMBER: \${{ !github.event.issue.pull_request && github.event.issue.number || '' }}
           PR_TITLE: \${{ steps.pr.outputs.result && fromJSON(steps.pr.outputs.result).title || '' }}
