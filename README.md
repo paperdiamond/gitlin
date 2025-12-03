@@ -192,8 +192,13 @@ pnpm run dev
 ### Test
 
 ```bash
-pnpm test
+pnpm test              # Run tests once
+pnpm test:watch        # Run tests in watch mode
+pnpm lint              # Check for lint errors
+pnpm format:check      # Check formatting
 ```
+
+**CI/CD:** All PRs run automated tests via GitHub Actions. Tests must pass before merging.
 
 ### Build
 
