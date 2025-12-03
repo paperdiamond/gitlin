@@ -23,7 +23,7 @@ cd your-project
 git clone https://github.com/paperdiamond/gitlin.git .gitlin
 cd .gitlin
 pnpm install
-pnpm setup
+pnpm run setup
 ```
 
 The setup wizard will:
