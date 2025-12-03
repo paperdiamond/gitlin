@@ -28,6 +28,7 @@ pnpm run setup
 
 The setup wizard will:
 - Install the GitHub Action workflow
+- Automatically fetch your Linear teams and let you select one (no manual UUID lookup!)
 - Add required secrets to your repository (via GitHub CLI)
 - Verify everything is configured correctly
 
@@ -62,7 +63,7 @@ jobs:
 Go to your repository's Settings → Secrets → Actions and add:
 
 - `LINEAR_API_KEY` - Get from https://linear.app/settings/api
-- `LINEAR_TEAM_ID` - Your Linear team ID (found in Linear URL)
+- `LINEAR_TEAM_ID` - Your Linear team UUID (get it by running `node scripts/get-team-id.js` in the gitlin directory)
 - `ANTHROPIC_API_KEY` - Get from https://console.anthropic.com/
 
 ### Use It!

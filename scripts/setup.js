@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import * as readline from "readline/promises";
+import { LinearClient } from "@linear/sdk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -236,11 +237,56 @@ async function addSecrets(targetDir) {
   console.log("\nEnter your API keys (they will be securely added to GitHub):\n");
 
   const linearApiKey = await rl.question("  LINEAR_API_KEY (from https://linear.app/settings/api): ");
-  const linearTeamId = await rl.question("  LINEAR_TEAM_ID (your team ID from Linear URL): ");
-  const anthropicApiKey = await rl.question("  ANTHROPIC_API_KEY (from https://console.anthropic.com/): ");
 
-  if (!linearApiKey || !linearTeamId || !anthropicApiKey) {
-    console.log("\n⚠️  Some secrets were empty. Skipping secret setup.");
+  if (!linearApiKey) {
+    console.log("\n⚠️  Linear API key is required. Skipping secret setup.");
+    return;
+  }
+
+  // Fetch Linear teams
+  let linearTeamId;
+  try {
+    console.log("\n  Fetching your Linear teams...");
+    const linearClient = new LinearClient({ apiKey: linearApiKey });
+    const teams = await linearClient.teams();
+
+    if (teams.nodes.length === 0) {
+      console.log("\n⚠️  No teams found in your Linear workspace.");
+      return;
+    }
+
+    if (teams.nodes.length === 1) {
+      // Only one team, use it automatically
+      linearTeamId = teams.nodes[0].id;
+      console.log(`  ✅ Using team: ${teams.nodes[0].name} (${teams.nodes[0].key})`);
+    } else {
+      // Multiple teams, let user choose
+      console.log("\n  Available teams:");
+      teams.nodes.forEach((team, idx) => {
+        console.log(`    ${idx + 1}. ${team.name} (${team.key})`);
+      });
+
+      const teamChoice = await rl.question("\n  Select team number: ");
+      const teamIdx = parseInt(teamChoice, 10) - 1;
+
+      if (teamIdx < 0 || teamIdx >= teams.nodes.length) {
+        console.log("\n⚠️  Invalid team selection. Skipping secret setup.");
+        return;
+      }
+
+      linearTeamId = teams.nodes[teamIdx].id;
+      console.log(`  ✅ Selected: ${teams.nodes[teamIdx].name}`);
+    }
+  } catch (error) {
+    console.error("\n❌ Failed to fetch Linear teams:", error.message);
+    console.log("  Please check your LINEAR_API_KEY is valid.");
+    return;
+  }
+
+  const anthropicApiKey = await rl.question("\n  ANTHROPIC_API_KEY (from https://console.anthropic.com/): ");
+
+  if (!anthropicApiKey) {
+    console.log("\n⚠️  Anthropic API key is required. Skipping secret setup.");
     return;
   }
 
