@@ -65,23 +65,60 @@ export class Gitlin {
                 }
             }
         }
-        // Collect all unresolved comments
+        // Collect all unresolved comments with metadata
         const allComments = [];
         // Add issue comments (can't be resolved)
         for (const comment of issueComments.data) {
             if (comment.body && !comment.body.includes("/create-issues")) {
-                allComments.push(comment.body);
+                allComments.push({
+                    body: comment.body,
+                    id: comment.id,
+                    htmlUrl: comment.html_url,
+                    type: "issue",
+                });
             }
         }
         // Add unresolved review comments only
         for (const comment of reviewComments.data) {
             const isResolved = resolutionMap.get(comment.id) || false;
             if (comment.body && !isResolved) {
-                allComments.push(`[${comment.path}:${comment.line}] ${comment.body}`);
+                allComments.push({
+                    body: `[${comment.path}:${comment.line}] ${comment.body}`,
+                    id: comment.id,
+                    htmlUrl: comment.html_url,
+                    type: "review",
+                });
             }
         }
-        console.log(`Collected ${allComments.length} unresolved comments (${issueComments.data.length} issue comments, ${reviewComments.data.length - (reviewComments.data.length - allComments.length + issueComments.data.length)} unresolved review comments)`);
+        console.log(`Collected ${allComments.length} unresolved comments (${issueComments.data.length} issue comments, ${allComments.filter(c => c.type === "review").length} unresolved review comments)`);
         return allComments;
+    }
+    /**
+     * Check for existing Linear issues from this PR to avoid duplicates
+     */
+    async getProcessedCommentIds(owner, repo, prNumber) {
+        const prUrl = `https://github.com/${owner}/${repo}/pull/${prNumber}`;
+        console.log(`Checking for existing Linear issues from ${prUrl}...`);
+        try {
+            const existingIssues = await this.linearClient.findIssuesByPRUrl(prUrl);
+            const processedCommentIds = new Set();
+            for (const issue of existingIssues) {
+                // Extract comment IDs from issue descriptions
+                // Format: <!-- gitlin:comment:123456 -->
+                const matches = issue.description?.matchAll(/<!-- gitlin:comment:(\d+) -->/g);
+                if (matches) {
+                    for (const match of matches) {
+                        processedCommentIds.add(parseInt(match[1], 10));
+                    }
+                }
+            }
+            console.log(`Found ${processedCommentIds.size} already-processed comments`);
+            return processedCommentIds;
+        }
+        catch (error) {
+            console.warn(`Failed to check for existing issues: ${error}`);
+            return new Set();
+        }
     }
     /**
      * Process a GitHub comment and create Linear issues
@@ -91,14 +128,25 @@ export class Gitlin {
         try {
             // If this is a PR, fetch all unresolved comments
             let commentBody = context.commentBody;
+            let comments = [];
             if (context.prNumber) {
                 const allComments = await this.fetchAllPRComments(context.owner, context.repo, context.prNumber);
                 if (allComments.length === 0) {
                     return "No unresolved comments found on this PR.";
                 }
+                // Check for duplicates
+                const processedIds = await this.getProcessedCommentIds(context.owner, context.repo, context.prNumber);
+                // Filter out already-processed comments
+                comments = allComments.filter(c => !processedIds.has(c.id));
+                if (comments.length === 0) {
+                    return `All ${allComments.length} comments have already been processed. No new issues to create.`;
+                }
+                if (comments.length < allComments.length) {
+                    console.log(`Skipping ${allComments.length - comments.length} already-processed comments`);
+                }
                 // Combine all comments with separators
-                commentBody = allComments.join("\n\n---\n\n");
-                console.log(`Analyzing ${allComments.length} comments (${commentBody.length} characters)`);
+                commentBody = comments.map(c => c.body).join("\n\n---\n\n");
+                console.log(`Analyzing ${comments.length} new comments (${commentBody.length} characters)`);
             }
             // Fetch Linear labels BEFORE AI parsing
             const linearLabels = await this.linearClient.getAvailableLabels();
@@ -116,7 +164,7 @@ export class Gitlin {
                 : undefined;
             // Create Linear issues
             console.log("Creating Linear issues...");
-            const result = await this.linearClient.createIssues(issues, prUrl);
+            const result = await this.linearClient.createIssues(issues, prUrl, comments.length > 0 ? comments : undefined);
             // Build response message
             let response = `✅ Created ${result.issues.length} Linear issue${result.issues.length !== 1 ? "s" : ""}:\n\n`;
             for (const issue of result.issues) {

@@ -14,6 +14,10 @@ export declare class Gitlin {
      */
     private fetchAllPRComments;
     /**
+     * Check for existing Linear issues from this PR to avoid duplicates
+     */
+    private getProcessedCommentIds;
+    /**
      * Process a GitHub comment and create Linear issues
      */
     processComment(context: GitHubContext): Promise<string>;

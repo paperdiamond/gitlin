@@ -1,9 +1,10 @@
-import { LinearClient as LinearSDK } from "@linear/sdk";
+import { LinearClient as LinearSDK, Issue } from "@linear/sdk";
 import {
   ParsedIssue,
   Priority,
   CreateIssuesResult,
   GitlinConfig,
+  CommentData,
 } from "./types.js";
 
 /**
@@ -20,11 +21,26 @@ export class LinearClient {
   }
 
   /**
+   * Find existing issues created from a specific PR URL
+   */
+  async findIssuesByPRUrl(prUrl: string): Promise<Issue[]> {
+    const issues = await this.client.issues({
+      filter: {
+        team: { id: { eq: this.config.linearTeamId } },
+        description: { contains: prUrl },
+      },
+    });
+
+    return issues.nodes;
+  }
+
+  /**
    * Create multiple Linear issues from parsed data
    */
   async createIssues(
     issues: ParsedIssue[],
     prUrl?: string,
+    comments?: CommentData[],
   ): Promise<CreateIssuesResult> {
     const result: CreateIssuesResult = {
       success: true,
@@ -39,7 +55,12 @@ export class LinearClient {
       const issue = issues[i];
 
       try {
-        const linearIssue = await this.createIssue(issue, createdIssues, prUrl);
+        const linearIssue = await this.createIssue(
+          issue,
+          createdIssues,
+          prUrl,
+          comments,
+        );
 
         result.issues.push({
           title: issue.title,
@@ -106,6 +127,7 @@ export class LinearClient {
     issue: ParsedIssue,
     createdIssues: Map<number, string>,
     prUrl?: string,
+    comments?: CommentData[],
   ) {
     // Map priority string to Linear priority number (case-insensitive)
     const priorityMap: Record<string, Priority> = {
@@ -123,6 +145,14 @@ export class LinearClient {
 
     if (prUrl) {
       description += `\n\n---\n\n**Related PR:** ${prUrl}`;
+    }
+
+    // Add comment IDs for duplicate detection (hidden HTML comments)
+    if (comments && comments.length > 0) {
+      description += "\n\n";
+      for (const comment of comments) {
+        description += `<!-- gitlin:comment:${comment.id} -->`;
+      }
     }
 
     if (issue.effort) {

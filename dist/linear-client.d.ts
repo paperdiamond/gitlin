@@ -1,4 +1,5 @@
-import { ParsedIssue, CreateIssuesResult, GitlinConfig } from "./types.js";
+import { Issue } from "@linear/sdk";
+import { ParsedIssue, CreateIssuesResult, GitlinConfig, CommentData } from "./types.js";
 /**
  * Linear API client for creating issues
  */
@@ -8,9 +9,13 @@ export declare class LinearClient {
     private labelCache?;
     constructor(config: GitlinConfig);
     /**
+     * Find existing issues created from a specific PR URL
+     */
+    findIssuesByPRUrl(prUrl: string): Promise<Issue[]>;
+    /**
      * Create multiple Linear issues from parsed data
      */
-    createIssues(issues: ParsedIssue[], prUrl?: string): Promise<CreateIssuesResult>;
+    createIssues(issues: ParsedIssue[], prUrl?: string, comments?: CommentData[]): Promise<CreateIssuesResult>;
     /**
      * Get available Linear labels (cached)
      */

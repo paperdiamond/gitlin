@@ -49,6 +49,16 @@ export const ParsedIssueSchema = z.object({
 export type ParsedIssue = z.infer<typeof ParsedIssueSchema>;
 
 /**
+ * Comment data with metadata for tracking
+ */
+export interface CommentData {
+  body: string;
+  id: number;
+  htmlUrl: string;
+  type: "issue" | "review";
+}
+
+/**
  * GitHub context for issue creation
  */
 export interface GitHubContext {
@@ -61,6 +71,7 @@ export interface GitHubContext {
   prDescription?: string;
   commitMessages?: string[];
   isResolved?: boolean;
+  comments?: CommentData[]; // NEW: Track individual comments for deduplication
 }
 
 /**

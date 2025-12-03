@@ -12,9 +12,21 @@ export class LinearClient {
         this.config = config;
     }
     /**
+     * Find existing issues created from a specific PR URL
+     */
+    async findIssuesByPRUrl(prUrl) {
+        const issues = await this.client.issues({
+            filter: {
+                team: { id: { eq: this.config.linearTeamId } },
+                description: { contains: prUrl },
+            },
+        });
+        return issues.nodes;
+    }
+    /**
      * Create multiple Linear issues from parsed data
      */
-    async createIssues(issues, prUrl) {
+    async createIssues(issues, prUrl, comments) {
         const result = {
             success: true,
             issues: [],
@@ -25,7 +37,7 @@ export class LinearClient {
         for (let i = 0; i < issues.length; i++) {
             const issue = issues[i];
             try {
-                const linearIssue = await this.createIssue(issue, createdIssues, prUrl);
+                const linearIssue = await this.createIssue(issue, createdIssues, prUrl, comments);
                 result.issues.push({
                     title: issue.title,
                     linearId: linearIssue.identifier,
@@ -77,7 +89,7 @@ export class LinearClient {
     /**
      * Create a single Linear issue
      */
-    async createIssue(issue, createdIssues, prUrl) {
+    async createIssue(issue, createdIssues, prUrl, comments) {
         // Map priority string to Linear priority number (case-insensitive)
         const priorityMap = {
             urgent: Priority.Urgent,
@@ -90,6 +102,13 @@ export class LinearClient {
         let description = issue.description;
         if (prUrl) {
             description += `\n\n---\n\n**Related PR:** ${prUrl}`;
+        }
+        // Add comment IDs for duplicate detection (hidden HTML comments)
+        if (comments && comments.length > 0) {
+            description += "\n\n";
+            for (const comment of comments) {
+                description += `<!-- gitlin:comment:${comment.id} -->`;
+            }
         }
         if (issue.effort) {
             description += `\n**Estimated Effort:** ${issue.effort}`;
