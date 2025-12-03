@@ -80,11 +80,11 @@ TASK: Extract actionable items that should become Linear issues. For each item:
    - WHY this needs to be done (context, problem)
    - WHAT should be done (specific tasks)
    - Any technical considerations or constraints
-3. **Priority** (be conservative - most issues should be medium or low):
-   - "urgent" - ONLY use for: production is down, security vulnerability being exploited, data loss risk, or blocking all work
-   - "high" - Impacts users directly, critical bugs (not blocking), important features explicitly marked as high priority
-   - "medium" - DEFAULT for most work: bugs without user impact, refactoring, technical debt, performance improvements
-   - "low" - Nice-to-have enhancements, future ideas, minor improvements, cosmetic changes
+3. **Priority** (EXTREMELY CONSERVATIVE - when in doubt, go lower):
+   - "urgent" - Almost NEVER use this. ONLY for: entire site down, active data breach, all users blocked. If you're unsure, it's NOT urgent.
+   - "high" - User-facing critical bugs that block main workflows. Revenue impact alone is NOT high - must actually block users.
+   - "medium" - DEFAULT for 80% of issues: most bugs, security issues not exploited, performance issues, refactoring, technical debt
+   - "low" - Enhancements, nice-to-haves, improvements that don't fix bugs
 4. **Effort**:
    - "small" - Hours (< 1 day)
    - "medium" - Days (1-3 days)
@@ -99,14 +99,23 @@ IMPORTANT RULES:
 - Ignore items already completed or in progress
 - If priority/effort unclear, use "medium"
 
-PRIORITY GUIDELINES (common patterns):
-- "Bug" or "Fix" → medium (unless explicitly critical or blocking)
-- "Refactor" or "Extract" → medium
-- "Security" → high (only urgent if actively exploited)
-- "Performance" or "Optimization" → medium
-- "Enhancement" or "Nice-to-have" → low
+PRIORITY GUIDELINES - BE EXTREMELY STRICT:
+- "Bug" or "Fix" → medium (even if affecting revenue or users, unless BLOCKING them)
+- "Refactor" or "Extract" → medium (never high)
+- "Security" → medium (only high if currently being exploited, never urgent unless active breach)
+- "Performance" or "Optimization" → medium (never high unless site unusable)
+- "Enhancement" or "Nice-to-have" → low (always)
 - "Add tests" or "Improve coverage" → medium
 - Phrases like "consider", "might want to", "could be nice" → low
+- "Timeout" or "Slow" → medium (not high unless completely broken)
+- "Stale data" or "Cache issue" → medium (not high)
+- "Affecting customers" or "Revenue impact" → still medium (unless blocking purchases entirely)
+
+EXAMPLES OF EACH PRIORITY:
+- urgent: "The entire website returns 500 errors", "Active SQL injection being exploited", "All user data deleted"
+- high: "Users cannot log in at all", "Checkout button doesn't work for anyone", "All API requests fail"
+- medium: "Payment times out for large amounts", "Security issue found but not exploited", "Cache shows stale data", "Refactor needed"
+- low: "Add keyboard shortcuts", "Improve UI animations", "Nice to have feature"
 
 Return ONLY a JSON array of issues, no other text:
 
