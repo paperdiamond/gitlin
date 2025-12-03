@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
+    "setup": "node scripts/setup.js",
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "test": "vitest",
@@ -19,7 +20,7 @@
     "developer-tools",
     "project-management"
   ],
-  "author": "Soffi",
+  "author": "Paper Diamond",
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

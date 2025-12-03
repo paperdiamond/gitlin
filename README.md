@@ -14,13 +14,33 @@ Stop manually copying tasks from code reviews into Linear. Just comment `/create
 
 ## Quick Start
 
-### 1. Install in Your Repository
+### Option 1: Automatic Setup (Recommended)
 
-Add the GitHub Action workflow to your repo:
+Clone this repo into your project and run the interactive setup:
+
+```bash
+cd your-project
+git clone https://github.com/paperdiamond/gitlin.git .gitlin
+cd .gitlin
+pnpm install
+pnpm setup
+```
+
+The setup wizard will:
+- Install the GitHub Action workflow
+- Add required secrets to your repository (via GitHub CLI)
+- Verify everything is configured correctly
+
+### Option 2: Manual Setup
+
+If you prefer to set things up manually:
+
+**1. Add the GitHub Action workflow**
+
+Create `.github/workflows/gitlin.yml`:
 
 ```yaml
-# .github/workflows/gitlin.yml
-name: Gitlin Bot
+name: Gitlin - Create Linear Issues
 on:
   issue_comment:
     types: [created]
@@ -30,22 +50,22 @@ on:
 jobs:
   create-issues:
     if: contains(github.event.comment.body, '/create-issues')
-    uses: gitlin/gitlin/.github/workflows/gitlin-bot.yml@main
+    uses: paperdiamond/gitlin/.github/workflows/gitlin-bot.yml@main
     secrets:
       LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
       LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-### 2. Add Secrets
+**2. Add Secrets**
 
-Add these secrets to your GitHub repository (Settings → Secrets → Actions):
+Go to your repository's Settings → Secrets → Actions and add:
 
 - `LINEAR_API_KEY` - Get from https://linear.app/settings/api
 - `LINEAR_TEAM_ID` - Your Linear team ID (found in Linear URL)
 - `ANTHROPIC_API_KEY` - Get from https://console.anthropic.com/
 
-### 3. Use It!
+### Use It!
 
 Comment `/create-issues` on any PR or issue, and the bot will:
 1. Parse the comment and surrounding context
