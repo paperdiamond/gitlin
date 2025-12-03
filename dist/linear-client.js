@@ -34,10 +34,13 @@ export class LinearClient {
         };
         // Create issues sequentially to handle dependencies
         const createdIssues = new Map();
+        console.log(`\n=== Creating ${issues.length} issues in Linear ===`);
         for (let i = 0; i < issues.length; i++) {
             const issue = issues[i];
+            console.log(`\n[${i + 1}/${issues.length}] Creating: "${issue.title}"`);
             try {
                 const linearIssue = await this.createIssue(issue, createdIssues, prUrl);
+                console.log(`[${i + 1}/${issues.length}] ✓ Created: ${linearIssue.identifier} - ${linearIssue.url}`);
                 result.issues.push({
                     title: issue.title,
                     linearId: linearIssue.identifier,
@@ -52,6 +55,7 @@ export class LinearClient {
                 result.success = false;
             }
         }
+        console.log(`\n=== Finished: Created ${result.issues.length} issues ===\n`);
         return result;
     }
     /**
