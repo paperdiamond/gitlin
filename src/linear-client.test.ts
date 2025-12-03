@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { LinearClient } from "./linear-client.js";
-import { Priority } from "./types.js";
 
 // Mock the Linear SDK
 vi.mock("@linear/sdk", () => {
@@ -78,7 +77,7 @@ describe("LinearClient", () => {
       {
         title: "Test task",
         description: "Test description",
-        priority: "High" as any, // Uppercase should work
+        priority: "High" as "high", // Uppercase should work
       },
     ];
 
@@ -98,9 +97,9 @@ describe("LinearClient", () => {
     });
 
     // @ts-expect-error - accessing private property for testing
-    errorClient.client.createIssue = vi.fn().mockRejectedValue(
-      new Error("API Error"),
-    );
+    errorClient.client.createIssue = vi
+      .fn()
+      .mockRejectedValue(new Error("API Error"));
 
     const issues = [
       {

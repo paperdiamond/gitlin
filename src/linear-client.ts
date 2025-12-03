@@ -2,7 +2,6 @@ import { LinearClient as LinearSDK } from "@linear/sdk";
 import {
   ParsedIssue,
   Priority,
-  Effort,
   CreateIssuesResult,
   GitlinConfig,
 } from "./types.js";
@@ -39,11 +38,7 @@ export class LinearClient {
       const issue = issues[i];
 
       try {
-        const linearIssue = await this.createIssue(
-          issue,
-          createdIssues,
-          prUrl,
-        );
+        const linearIssue = await this.createIssue(issue, createdIssues, prUrl);
 
         result.issues.push({
           title: issue.title,
@@ -79,7 +74,8 @@ export class LinearClient {
       low: Priority.Low,
     };
 
-    const priority = priorityMap[issue.priority.toLowerCase()] ?? Priority.Medium;
+    const priority =
+      priorityMap[issue.priority.toLowerCase()] ?? Priority.Medium;
 
     // Build description with PR context
     let description = issue.description;
