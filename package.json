@@ -1,0 +1,38 @@
+{
+  "name": "gitlin",
+  "version": "0.1.0",
+  "description": "AI-powered GitHub bot that creates Linear issues from code reviews, PRs, and commits",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write 'src/**/*.ts'"
+  },
+  "keywords": [
+    "github",
+    "linear",
+    "ai",
+    "automation",
+    "developer-tools",
+    "project-management"
+  ],
+  "author": "Soffi",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@linear/sdk": "^26.0.0",
+    "@octokit/rest": "^21.0.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
