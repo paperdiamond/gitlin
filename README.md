@@ -6,11 +6,13 @@ Stop manually copying tasks from code reviews into Linear. Just comment `/create
 
 ## Features
 
-✨ **AI-Powered Extraction** - Uses Claude to intelligently parse comments, reviews, and PRs
-📋 **Smart Issue Creation** - Automatically populates title, description, priority, effort, labels
-🔗 **Dependency Management** - Links related issues automatically
-⚡ **Zero Configuration** - Works out of the box with sensible defaults
-🎯 **Context-Aware** - Understands PR context, commit history, and review feedback
+- ✨ **AI-Powered Extraction** - Uses Claude to intelligently parse comments, reviews, and PRs
+- 📋 **Smart Issue Creation** - Automatically populates title, description, priority, effort, labels, and assignees
+- 🔗 **Dependency Management** - Links related issues automatically
+- 👀 **Visual Feedback** - Emoji reactions show processing status (eyes → rocket on success)
+- ⚡ **Zero Configuration** - Works out of the box with sensible defaults
+- 🎯 **Context-Aware** - Understands PR context, commit history, and review feedback
+- 🔐 **Secure** - Auto-fetches Linear team UUID, validates origins, minimal permissions
 
 ## Quick Start
 
