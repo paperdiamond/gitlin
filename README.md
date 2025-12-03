@@ -13,9 +13,11 @@ Stop manually copying tasks from code reviews into Linear. Just comment `/create
 - ⚡ **Zero Configuration** - Works out of the box with sensible defaults
 - 🎯 **Context-Aware** - Understands PR context, commit history, and review feedback
 - 🔐 **Secure** - Auto-fetches Linear team UUID, validates origins, minimal permissions
-- 🚀 **Fast** - Docker-based execution with 82% faster cold start (27s vs 152s)
+- 🚀 **Fast** - Docker-based execution with 87% faster cold start (19s vs 152s)
 - 🎯 **Smart Filtering** - Automatically skips resolved comment threads to prevent duplicates
 - 🏷️ **Intelligent Labels** - AI receives Linear's available labels for accurate suggestions, automatic tagging
+- 🔄 **Duplicate Detection** - Tracks processed comments to prevent creating duplicate issues on multiple runs
+- 🔍 **Automatic Comment Gathering** - Fetches and analyzes all unresolved PR comments in one operation
 
 ## Quick Start
 
@@ -254,14 +256,15 @@ console.log(result);
 
 gitlin is optimized for speed and efficiency:
 
-- **82% faster execution**: Docker-based deployment reduces cold start from ~152s to ~27s
+- **87% faster execution**: Docker-based deployment reduces cold start from ~152s to ~19s
 - **Smart caching**: Linear labels cached across issue creation runs
 - **Efficient AI calls**: Claude receives only relevant context for faster responses
+- **Duplicate detection**: Skips already-processed comments to save time and API calls
 
 ### Before vs After
 ```
-Before (pnpm install):  ~152s  (install 90s + build 30s + run 27s)
-After (Docker):         ~27s   (pull 5s + run 22s, cached)
+Before (pnpm install):  ~152s  (install 90s + build 30s + run 32s)
+After (Docker):         ~19s   (pull 3s + run 16s, cached)
 ```
 
 ## Cost
@@ -276,11 +279,14 @@ This pays for itself immediately by saving 5-10 minutes per code review.
 ## Roadmap
 
 ### Completed ✅
-- [x] Docker-based execution for 82% faster performance
+- [x] Docker-based execution for 87% faster performance (19s vs 152s)
 - [x] Automatic resolution filtering (skip resolved comments)
 - [x] Intelligent label suggestions (AI receives Linear labels)
 - [x] Label mapping configuration
-- [x] Auto-tagging for audit trail
+- [x] Auto-tagging for audit trail (gitlin-created tag)
+- [x] Duplicate detection (tracks processed comments)
+- [x] Automatic comment gathering (fetches all unresolved PR comments)
+- [x] Conservative priority assignment (prevents over-prioritization)
 
 ### Planned
 - [ ] Interactive TUI for manual comment selection
