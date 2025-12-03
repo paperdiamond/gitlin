@@ -26,7 +26,7 @@ export class LinearClient {
     /**
      * Create multiple Linear issues from parsed data
      */
-    async createIssues(issues, prUrl, comments) {
+    async createIssues(issues, prUrl) {
         const result = {
             success: true,
             issues: [],
@@ -37,7 +37,7 @@ export class LinearClient {
         for (let i = 0; i < issues.length; i++) {
             const issue = issues[i];
             try {
-                const linearIssue = await this.createIssue(issue, createdIssues, prUrl, comments);
+                const linearIssue = await this.createIssue(issue, createdIssues, prUrl);
                 result.issues.push({
                     title: issue.title,
                     linearId: linearIssue.identifier,
@@ -89,7 +89,7 @@ export class LinearClient {
     /**
      * Create a single Linear issue
      */
-    async createIssue(issue, createdIssues, prUrl, comments) {
+    async createIssue(issue, createdIssues, prUrl) {
         // Map priority string to Linear priority number (case-insensitive)
         const priorityMap = {
             urgent: Priority.Urgent,
@@ -98,20 +98,16 @@ export class LinearClient {
             low: Priority.Low,
         };
         const priority = priorityMap[issue.priority.toLowerCase()] ?? Priority.Medium;
-        // Build description with PR context
+        // Build description with PR context and tracking marker
         let description = issue.description;
+        if (issue.effort) {
+            description += `\n\n**Estimated Effort:** ${issue.effort}`;
+        }
         if (prUrl) {
             description += `\n\n---\n\n**Related PR:** ${prUrl}`;
-        }
-        // Add comment IDs for duplicate detection (hidden HTML comments)
-        if (comments && comments.length > 0) {
-            description += "\n\n";
-            for (const comment of comments) {
-                description += `<!-- gitlin:comment:${comment.id} -->`;
-            }
-        }
-        if (issue.effort) {
-            description += `\n**Estimated Effort:** ${issue.effort}`;
+            // Add hidden tracking marker for duplicate detection
+            // Format: <!-- gitlin:pr:owner/repo/pull/123 -->
+            description += `\n<!-- gitlin:pr:${prUrl.replace('https://github.com/', '')} -->`;
         }
         // Refresh cache if needed
         if (!this.labelCache) {

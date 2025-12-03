@@ -94,30 +94,27 @@ export class Gitlin {
         return allComments;
     }
     /**
-     * Check for existing Linear issues from this PR to avoid duplicates
+     * Check if this PR has already been processed to avoid duplicates
      */
-    async getProcessedCommentIds(owner, repo, prNumber) {
+    async isPRProcessed(owner, repo, prNumber) {
         const prUrl = `https://github.com/${owner}/${repo}/pull/${prNumber}`;
-        console.log(`Checking for existing Linear issues from ${prUrl}...`);
+        const prMarker = `${owner}/${repo}/pull/${prNumber}`;
+        console.log(`Checking if PR has been processed: ${prUrl}...`);
         try {
             const existingIssues = await this.linearClient.findIssuesByPRUrl(prUrl);
-            const processedCommentIds = new Set();
+            // Check if any issue has our tracking marker
             for (const issue of existingIssues) {
-                // Extract comment IDs from issue descriptions
-                // Format: <!-- gitlin:comment:123456 -->
-                const matches = issue.description?.matchAll(/<!-- gitlin:comment:(\d+) -->/g);
-                if (matches) {
-                    for (const match of matches) {
-                        processedCommentIds.add(parseInt(match[1], 10));
-                    }
+                if (issue.description?.includes(`<!-- gitlin:pr:${prMarker} -->`)) {
+                    console.log(`PR already processed - found ${existingIssues.length} existing issues`);
+                    return true;
                 }
             }
-            console.log(`Found ${processedCommentIds.size} already-processed comments`);
-            return processedCommentIds;
+            console.log(`PR not yet processed`);
+            return false;
         }
         catch (error) {
             console.warn(`Failed to check for existing issues: ${error}`);
-            return new Set();
+            return false;
         }
     }
     /**
@@ -130,23 +127,19 @@ export class Gitlin {
             let commentBody = context.commentBody;
             let comments = [];
             if (context.prNumber) {
+                // Check if this PR has already been processed
+                const alreadyProcessed = await this.isPRProcessed(context.owner, context.repo, context.prNumber);
+                if (alreadyProcessed) {
+                    return "This PR has already been processed. All comments have been converted to Linear issues. To create new issues, please add new comments and trigger the bot again on a fresh PR.";
+                }
                 const allComments = await this.fetchAllPRComments(context.owner, context.repo, context.prNumber);
                 if (allComments.length === 0) {
                     return "No unresolved comments found on this PR.";
                 }
-                // Check for duplicates
-                const processedIds = await this.getProcessedCommentIds(context.owner, context.repo, context.prNumber);
-                // Filter out already-processed comments
-                comments = allComments.filter(c => !processedIds.has(c.id));
-                if (comments.length === 0) {
-                    return `All ${allComments.length} comments have already been processed. No new issues to create.`;
-                }
-                if (comments.length < allComments.length) {
-                    console.log(`Skipping ${allComments.length - comments.length} already-processed comments`);
-                }
+                comments = allComments;
                 // Combine all comments with separators
                 commentBody = comments.map(c => c.body).join("\n\n---\n\n");
-                console.log(`Analyzing ${comments.length} new comments (${commentBody.length} characters)`);
+                console.log(`Analyzing ${comments.length} comments (${commentBody.length} characters)`);
             }
             // Fetch Linear labels BEFORE AI parsing
             const linearLabels = await this.linearClient.getAvailableLabels();
@@ -164,7 +157,7 @@ export class Gitlin {
                 : undefined;
             // Create Linear issues
             console.log("Creating Linear issues...");
-            const result = await this.linearClient.createIssues(issues, prUrl, comments.length > 0 ? comments : undefined);
+            const result = await this.linearClient.createIssues(issues, prUrl);
             // Build response message
             let response = `✅ Created ${result.issues.length} Linear issue${result.issues.length !== 1 ? "s" : ""}:\n\n`;
             for (const issue of result.issues) {
