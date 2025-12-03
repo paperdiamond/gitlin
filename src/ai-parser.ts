@@ -14,8 +14,11 @@ export class AIParser {
   /**
    * Extract actionable issues from GitHub context
    */
-  async parseIssues(context: GitHubContext): Promise<ParsedIssue[]> {
-    const prompt = this.buildPrompt(context);
+  async parseIssues(
+    context: GitHubContext,
+    availableLabels?: string[],
+  ): Promise<ParsedIssue[]> {
+    const prompt = this.buildPrompt(context, availableLabels);
 
     const response = await this.anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -53,7 +56,10 @@ export class AIParser {
   /**
    * Build the prompt for Claude based on GitHub context
    */
-  private buildPrompt(context: GitHubContext): string {
+  private buildPrompt(
+    context: GitHubContext,
+    availableLabels?: string[],
+  ): string {
     let prompt = `You are an expert engineering project manager. Analyze the following GitHub content and extract actionable items that should become Linear issues.
 
 Repository: ${context.owner}/${context.repo}
@@ -78,6 +84,12 @@ Repository: ${context.owner}/${context.repo}
     }
 
     prompt += `\n\nComment/Content to Analyze:\n${context.commentBody}`;
+
+    // Add available labels to prompt
+    if (availableLabels && availableLabels.length > 0) {
+      prompt += `\n\nAVAILABLE LINEAR LABELS:\n${availableLabels.join(", ")}`;
+      prompt += `\n\nUse these labels when applicable. You may suggest labels not in this list if they're more appropriate.`;
+    }
 
     prompt += `
 

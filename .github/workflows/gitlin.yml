@@ -20,22 +20,68 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Check comment resolution status
+        if: github.event.pull_request_review_comment
+        id: resolution
+        uses: actions/github-script@v7
         with:
-          version: 9
+          script: |
+            const query = `
+              query($owner: String!, $repo: String!, $pr: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $pr) {
+                    reviewThreads(first: 100) {
+                      nodes {
+                        comments(first: 1) {
+                          nodes {
+                            id
+                          }
+                        }
+                        isResolved
+                      }
+                    }
+                  }
+                }
+              }
+            `;
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+            const result = await github.graphql(query, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pr: context.issue.number
+            });
+
+            // Find the thread containing our comment
+            const commentNodeId = context.payload.comment.node_id;
+            const thread = result.repository.pullRequest.reviewThreads.nodes
+              .find(t => t.comments.nodes.some(c => c.id === commentNodeId));
+
+            return thread ? thread.isResolved : false;
+
+      - name: Post skip message if resolved
+        if: github.event.pull_request_review_comment && steps.resolution.outputs.result == 'true'
+        uses: actions/github-script@v7
         with:
-          node-version: "20"
-          cache: "pnpm"
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ This comment thread is already resolved. Skipping issue creation. If you still want to create an issue, unresolve the thread and comment `/create-issues` again.'
+            });
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: '+1'
+            });
 
-      - name: Build
-        run: pnpm build
+      - name: Skip if resolved
+        if: github.event.pull_request_review_comment && steps.resolution.outputs.result == 'true'
+        run: |
+          echo "Comment is from a resolved thread. Skipping issue creation."
+          exit 0
 
       - name: Get PR details (if PR comment)
         if: github.event.issue.pull_request
@@ -68,4 +114,18 @@ jobs:
           ISSUE_NUMBER: ${{ !github.event.issue.pull_request && github.event.issue.number || '' }}
           PR_TITLE: ${{ steps.pr.outputs.result && fromJSON(steps.pr.outputs.result).title || '' }}
           PR_DESCRIPTION: ${{ steps.pr.outputs.result && fromJSON(steps.pr.outputs.result).body || '' }}
-        run: node dist/index.js
+        run: |
+          docker run --rm \
+            -e LINEAR_API_KEY \
+            -e LINEAR_TEAM_ID \
+            -e ANTHROPIC_API_KEY \
+            -e GITHUB_TOKEN \
+            -e GITHUB_REPOSITORY_OWNER \
+            -e GITHUB_REPOSITORY \
+            -e COMMENT_BODY \
+            -e COMMENT_ID \
+            -e PR_NUMBER \
+            -e ISSUE_NUMBER \
+            -e PR_TITLE \
+            -e PR_DESCRIPTION \
+            ghcr.io/${{ github.repository_owner }}/gitlin:latest

@@ -1,0 +1,29 @@
+node_modules/
+src/
+*.log
+.env
+.env.local
+.git/
+.github/
+.vscode/
+.idea/
+coverage/
+.DS_Store
+
+# Test files
+**/*.test.ts
+**/*.test.js
+*.spec.ts
+*.spec.js
+
+# Documentation
+README.md
+CONTRIBUTING.md
+LICENSE
+docs/
+
+# Dev config files
+tsconfig.json
+eslint.config.js
+.prettierrc
+.gitignore

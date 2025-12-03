@@ -12,6 +12,7 @@ import {
 export class LinearClient {
   private client: LinearSDK;
   private config: GitlinConfig;
+  private labelCache?: Map<string, string>;
 
   constructor(config: GitlinConfig) {
     this.client = new LinearSDK({ apiKey: config.linearApiKey });
@@ -59,6 +60,46 @@ export class LinearClient {
   }
 
   /**
+   * Get available Linear labels (cached)
+   */
+  async getAvailableLabels(): Promise<string[]> {
+    if (!this.labelCache) {
+      await this.refreshLabelCache();
+    }
+    return Array.from(this.labelCache!.keys());
+  }
+
+  /**
+   * Refresh label cache from Linear API
+   */
+  private async refreshLabelCache(): Promise<void> {
+    const labels = await this.client.issueLabels();
+    this.labelCache = new Map(
+      labels.nodes.map((label) => [label.name.toLowerCase(), label.id]),
+    );
+  }
+
+  /**
+   * Apply label mapping from config
+   */
+  private applyLabelMapping(labels: string[]): string[] {
+    if (!this.config.labelMapping) {
+      return labels;
+    }
+
+    const expandedLabels = new Set<string>(labels);
+
+    for (const label of labels) {
+      const mapped = this.config.labelMapping[label.toLowerCase()];
+      if (mapped) {
+        mapped.forEach((l) => expandedLabels.add(l));
+      }
+    }
+
+    return Array.from(expandedLabels);
+  }
+
+  /**
    * Create a single Linear issue
    */
   private async createIssue(
@@ -88,19 +129,49 @@ export class LinearClient {
       description += `\n**Estimated Effort:** ${issue.effort}`;
     }
 
-    // Get label IDs if labels are provided
-    const labelIds: string[] = [];
-    if (issue.labels && issue.labels.length > 0) {
-      const labels = await this.client.issueLabels();
-      const labelMap = new Map(
-        labels.nodes.map((label) => [label.name.toLowerCase(), label.id]),
-      );
+    // Refresh cache if needed
+    if (!this.labelCache) {
+      await this.refreshLabelCache();
+    }
 
-      for (const labelName of issue.labels) {
-        const labelId = labelMap.get(labelName.toLowerCase());
-        if (labelId) {
-          labelIds.push(labelId);
+    // Apply label mapping from config
+    const labelsToApply = issue.labels
+      ? this.applyLabelMapping(issue.labels)
+      : [];
+
+    // Add gitlin-created auto-tag
+    const autoTag = this.config.gitlinAutoTag || "gitlin-created";
+    labelsToApply.push(autoTag);
+
+    // Get label IDs (create missing auto-tags)
+    const labelIds: string[] = [];
+    for (const labelName of labelsToApply) {
+      let labelId = this.labelCache!.get(labelName.toLowerCase());
+
+      // Auto-create gitlin tag if missing
+      if (!labelId && labelName === autoTag) {
+        try {
+          const payload = await this.client.createIssueLabel({
+            name: autoTag,
+            color: "#7C3AED", // Purple
+            teamId: this.config.linearTeamId,
+          });
+          const newLabel = await payload.issueLabel;
+          labelId = newLabel?.id;
+          if (labelId && this.labelCache) {
+            this.labelCache.set(labelName.toLowerCase(), labelId);
+          }
+        } catch (error) {
+          console.warn(
+            `Failed to create auto-tag label "${autoTag}": ${error}`,
+          );
         }
+      }
+
+      if (labelId) {
+        labelIds.push(labelId);
+      } else {
+        console.warn(`Label not found in Linear: ${labelName}`);
       }
     }
 

@@ -60,6 +60,7 @@ export interface GitHubContext {
   prTitle?: string;
   prDescription?: string;
   commitMessages?: string[];
+  isResolved?: boolean;
 }
 
 /**
@@ -79,6 +80,12 @@ export interface GitlinConfig {
 
   /** Effort estimate mapping to Linear points */
   effortMapping?: Record<Effort, number>;
+
+  /** Auto-tag to add to all created issues */
+  gitlinAutoTag?: string;
+
+  /** Skip issues from resolved comment threads */
+  skipResolvedComments?: boolean;
 }
 
 /**

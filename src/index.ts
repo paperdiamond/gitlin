@@ -26,9 +26,13 @@ export class Gitlin {
     console.log(`Processing comment from ${context.owner}/${context.repo}`);
 
     try {
-      // Parse issues from comment using AI
+      // Fetch Linear labels BEFORE AI parsing
+      const linearLabels = await this.linearClient.getAvailableLabels();
+      console.log(`Fetched ${linearLabels.length} Linear labels`);
+
+      // Parse issues from comment using AI with label context
       console.log("Parsing issues with AI...");
-      const issues = await this.aiParser.parseIssues(context);
+      const issues = await this.aiParser.parseIssues(context, linearLabels);
 
       if (issues.length === 0) {
         return "No actionable items found in the comment.";

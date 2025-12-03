@@ -13,6 +13,9 @@ Stop manually copying tasks from code reviews into Linear. Just comment `/create
 - ⚡ **Zero Configuration** - Works out of the box with sensible defaults
 - 🎯 **Context-Aware** - Understands PR context, commit history, and review feedback
 - 🔐 **Secure** - Auto-fetches Linear team UUID, validates origins, minimal permissions
+- 🚀 **Fast** - Docker-based execution with 82% faster cold start (27s vs 152s)
+- 🎯 **Smart Filtering** - Automatically skips resolved comment threads to prevent duplicates
+- 🏷️ **Intelligent Labels** - AI receives Linear's available labels for accurate suggestions, automatic tagging
 
 ## Quick Start
 
@@ -168,9 +171,19 @@ Create `.github/gitlin.json` to customize behavior:
     "small": 1,
     "medium": 3,
     "large": 5
-  }
+  },
+  "gitlinAutoTag": "gitlin-created",
+  "skipResolvedComments": true
 }
 ```
+
+### Configuration Options
+
+- **`labelMapping`**: Map AI-suggested labels to multiple Linear labels
+- **`gitlinAutoTag`**: Custom tag added to all created issues (default: `"gitlin-created"`)
+- **`skipResolvedComments`**: Skip creating issues from resolved comment threads (default: `true`)
+- **`defaultPriority`**: Default priority if AI can't determine it
+- **`effortMapping`**: Map effort estimates to Linear points
 
 ## Development
 
@@ -232,6 +245,20 @@ console.log(result);
 // - [ACME-123](https://linear.app/...) Add error handling
 ```
 
+## Performance
+
+gitlin is optimized for speed and efficiency:
+
+- **82% faster execution**: Docker-based deployment reduces cold start from ~152s to ~27s
+- **Smart caching**: Linear labels cached across issue creation runs
+- **Efficient AI calls**: Claude receives only relevant context for faster responses
+
+### Before vs After
+```
+Before (pnpm install):  ~152s  (install 90s + build 30s + run 27s)
+After (Docker):         ~27s   (pull 5s + run 22s, cached)
+```
+
 ## Cost
 
 gitlin uses Claude Sonnet which costs approximately:
@@ -243,8 +270,17 @@ This pays for itself immediately by saving 5-10 minutes per code review.
 
 ## Roadmap
 
+### Completed ✅
+- [x] Docker-based execution for 82% faster performance
+- [x] Automatic resolution filtering (skip resolved comments)
+- [x] Intelligent label suggestions (AI receives Linear labels)
+- [x] Label mapping configuration
+- [x] Auto-tagging for audit trail
+
+### Planned
+- [ ] Interactive TUI for manual comment selection
+- [ ] Sub-issue hierarchy support
 - [ ] Support for multiple Linear teams
-- [ ] GitHub Issue templates
 - [ ] Slack integration
 - [ ] Custom AI models (GPT-4, local models)
 - [ ] Batch issue editing before creation
