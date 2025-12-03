@@ -100,6 +100,23 @@ jobs:
               number: context.issue.number
             };
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
       - name: Run Gitlin Bot
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
@@ -114,18 +131,4 @@ jobs:
           ISSUE_NUMBER: ${{ !github.event.issue.pull_request && github.event.issue.number || '' }}
           PR_TITLE: ${{ steps.pr.outputs.result && fromJSON(steps.pr.outputs.result).title || '' }}
           PR_DESCRIPTION: ${{ steps.pr.outputs.result && fromJSON(steps.pr.outputs.result).body || '' }}
-        run: |
-          docker run --rm \
-            -e LINEAR_API_KEY \
-            -e LINEAR_TEAM_ID \
-            -e ANTHROPIC_API_KEY \
-            -e GITHUB_TOKEN \
-            -e GITHUB_REPOSITORY_OWNER \
-            -e GITHUB_REPOSITORY \
-            -e COMMENT_BODY \
-            -e COMMENT_ID \
-            -e PR_NUMBER \
-            -e ISSUE_NUMBER \
-            -e PR_TITLE \
-            -e PR_DESCRIPTION \
-            ghcr.io/${{ github.repository_owner }}/gitlin:latest
+        run: node dist/index.js

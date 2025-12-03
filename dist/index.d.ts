@@ -14,9 +14,9 @@ export declare class Gitlin {
      */
     private fetchAllPRComments;
     /**
-     * Check for existing Linear issues from this PR to avoid duplicates
+     * Check if this PR has already been processed to avoid duplicates
      */
-    private getProcessedCommentIds;
+    private isPRProcessed;
     /**
      * Process a GitHub comment and create Linear issues
      */

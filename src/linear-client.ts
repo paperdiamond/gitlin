@@ -4,7 +4,6 @@ import {
   Priority,
   CreateIssuesResult,
   GitlinConfig,
-  CommentData,
 } from "./types.js";
 
 /**
@@ -40,7 +39,6 @@ export class LinearClient {
   async createIssues(
     issues: ParsedIssue[],
     prUrl?: string,
-    comments?: CommentData[],
   ): Promise<CreateIssuesResult> {
     const result: CreateIssuesResult = {
       success: true,
@@ -55,12 +53,7 @@ export class LinearClient {
       const issue = issues[i];
 
       try {
-        const linearIssue = await this.createIssue(
-          issue,
-          createdIssues,
-          prUrl,
-          comments,
-        );
+        const linearIssue = await this.createIssue(issue, createdIssues, prUrl);
 
         result.issues.push({
           title: issue.title,
@@ -127,7 +120,6 @@ export class LinearClient {
     issue: ParsedIssue,
     createdIssues: Map<number, string>,
     prUrl?: string,
-    comments?: CommentData[],
   ) {
     // Map priority string to Linear priority number (case-insensitive)
     const priorityMap: Record<string, Priority> = {
@@ -140,23 +132,18 @@ export class LinearClient {
     const priority =
       priorityMap[issue.priority.toLowerCase()] ?? Priority.Medium;
 
-    // Build description with PR context
+    // Build description with PR context and tracking marker
     let description = issue.description;
+
+    if (issue.effort) {
+      description += `\n\n**Estimated Effort:** ${issue.effort}`;
+    }
 
     if (prUrl) {
       description += `\n\n---\n\n**Related PR:** ${prUrl}`;
-    }
-
-    // Add comment IDs for duplicate detection (hidden HTML comments)
-    if (comments && comments.length > 0) {
-      description += "\n\n";
-      for (const comment of comments) {
-        description += `<!-- gitlin:comment:${comment.id} -->`;
-      }
-    }
-
-    if (issue.effort) {
-      description += `\n**Estimated Effort:** ${issue.effort}`;
+      // Add hidden tracking marker for duplicate detection
+      // Format: <!-- gitlin:pr:owner/repo/pull/123 -->
+      description += `\n<!-- gitlin:pr:${prUrl.replace('https://github.com/', '')} -->`;
     }
 
     // Refresh cache if needed
