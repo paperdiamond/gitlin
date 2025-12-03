@@ -36,6 +36,10 @@ export const ParsedIssueSchema = z.object({
     .array(z.string())
     .optional()
     .describe("Labels like security, refactor, bug, enhancement"),
+  assignee: z
+    .string()
+    .optional()
+    .describe("Assignee email, name, or 'Unassigned'"),
   dependencies: z
     .array(z.number())
     .optional()

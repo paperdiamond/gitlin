@@ -71,7 +71,7 @@ export class LinearClient {
     createdIssues: Map<number, string>,
     prUrl?: string,
   ) {
-    // Map priority string to Linear priority number
+    // Map priority string to Linear priority number (case-insensitive)
     const priorityMap: Record<string, Priority> = {
       urgent: Priority.Urgent,
       high: Priority.High,
@@ -79,7 +79,7 @@ export class LinearClient {
       low: Priority.Low,
     };
 
-    const priority = priorityMap[issue.priority] ?? Priority.Medium;
+    const priority = priorityMap[issue.priority.toLowerCase()] ?? Priority.Medium;
 
     // Build description with PR context
     let description = issue.description;
@@ -108,6 +108,31 @@ export class LinearClient {
       }
     }
 
+    // Get assignee ID if assignee is provided
+    let assigneeId: string | undefined;
+    if (issue.assignee && issue.assignee.toLowerCase() !== "unassigned") {
+      try {
+        const users = await this.client.users();
+        // Try to match by email, name, or displayName
+        const user = users.nodes.find(
+          (u) =>
+            u.email?.toLowerCase() === issue.assignee?.toLowerCase() ||
+            u.name?.toLowerCase() === issue.assignee?.toLowerCase() ||
+            u.displayName?.toLowerCase() === issue.assignee?.toLowerCase(),
+        );
+
+        if (user) {
+          assigneeId = user.id;
+        } else {
+          console.warn(
+            `Could not find Linear user for assignee: ${issue.assignee}. Issue will be unassigned.`,
+          );
+        }
+      } catch (error) {
+        console.warn(`Failed to look up assignee: ${error}`);
+      }
+    }
+
     // Create the issue
     const payload = await this.client.createIssue({
       teamId: this.config.linearTeamId,
@@ -115,6 +140,7 @@ export class LinearClient {
       description,
       priority,
       labelIds: labelIds.length > 0 ? labelIds : undefined,
+      assigneeId,
     });
 
     if (!payload.success || !payload.issue) {

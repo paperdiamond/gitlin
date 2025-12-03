@@ -96,10 +96,10 @@ The security changes look good though!
 ✅ Created 3 Linear issues:
 
 - [PROJ-123](https://linear.app/team/issue/PROJ-123) Add input validation for user email addresses
-  Priority: High | Effort: Small | Assignee: @alex
+  Priority: High | Effort: Small | Assignee: alex@company.com
 
 - [PROJ-124](https://linear.app/team/issue/PROJ-124) Extract authentication logic into reusable service
-  Priority: Medium | Effort: Medium | Assignee: @taylor
+  Priority: Medium | Effort: Medium | Assignee: taylor@company.com
 
 - [PROJ-125](https://linear.app/team/issue/PROJ-125) Add rate limiting to API endpoints
   Priority: Low | Effort: Large | Assignee: Unassigned
@@ -114,12 +114,12 @@ feat: Add user authentication with OAuth
 
 ## Follow-up Items
 
-1. Add comprehensive error handling for auth failures (High priority, 3 points, @jordan)
+1. Add comprehensive error handling for auth failures (High priority, 3 points, jordan@company.com)
    - Display user-friendly error messages for common auth failures
    - Log authentication errors to monitoring service
    - Add retry mechanism for transient failures
 
-2. Implement session refresh token rotation (Medium priority, 5 points, @casey)
+2. Implement session refresh token rotation (Medium priority, 5 points, casey@company.com)
    - Automatically refresh access tokens before expiration
    - Handle refresh token expiration gracefully
    - Add security audit logging for token refresh events
