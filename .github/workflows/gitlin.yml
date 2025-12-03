@@ -11,6 +11,10 @@ jobs:
     # Only run if comment contains the trigger
     if: contains(github.event.comment.body, '/create-issues')
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
 
     steps:
       - name: Checkout repository
