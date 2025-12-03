@@ -106,7 +106,8 @@ export class LinearClient {
         const autoTag = this.config.gitlinAutoTag || "gitlin-created";
         labelsToApply.push(autoTag);
         // Get label IDs (create missing auto-tags)
-        const labelIds = [];
+        // Use Set to ensure uniqueness
+        const labelIdSet = new Set();
         for (const labelName of labelsToApply) {
             let labelId = this.labelCache.get(labelName.toLowerCase());
             // Auto-create gitlin tag if missing
@@ -128,12 +129,13 @@ export class LinearClient {
                 }
             }
             if (labelId) {
-                labelIds.push(labelId);
+                labelIdSet.add(labelId);
             }
             else {
                 console.warn(`Label not found in Linear: ${labelName}`);
             }
         }
+        const labelIds = Array.from(labelIdSet);
         // Get assignee ID if assignee is provided
         let assigneeId;
         if (issue.assignee && issue.assignee.toLowerCase() !== "unassigned") {

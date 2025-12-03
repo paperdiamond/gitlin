@@ -144,7 +144,8 @@ export class LinearClient {
     labelsToApply.push(autoTag);
 
     // Get label IDs (create missing auto-tags)
-    const labelIds: string[] = [];
+    // Use Set to ensure uniqueness
+    const labelIdSet = new Set<string>();
     for (const labelName of labelsToApply) {
       let labelId = this.labelCache!.get(labelName.toLowerCase());
 
@@ -169,11 +170,13 @@ export class LinearClient {
       }
 
       if (labelId) {
-        labelIds.push(labelId);
+        labelIdSet.add(labelId);
       } else {
         console.warn(`Label not found in Linear: ${labelName}`);
       }
     }
+
+    const labelIds = Array.from(labelIdSet);
 
     // Get assignee ID if assignee is provided
     let assigneeId: string | undefined;
