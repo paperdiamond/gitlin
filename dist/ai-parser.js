@@ -80,11 +80,11 @@ TASK: Extract actionable items that should become Linear issues. For each item:
    - WHY this needs to be done (context, problem)
    - WHAT should be done (specific tasks)
    - Any technical considerations or constraints
-3. **Priority**:
-   - "urgent" - Blocking, security critical, or production down
-   - "high" - Important, impacts users, should be done soon
-   - "medium" - Valuable but not urgent, technical debt
-   - "low" - Nice to have, future enhancement
+3. **Priority** (be conservative - most issues should be medium or low):
+   - "urgent" - ONLY use for: production is down, security vulnerability being exploited, data loss risk, or blocking all work
+   - "high" - Impacts users directly, critical bugs (not blocking), important features explicitly marked as high priority
+   - "medium" - DEFAULT for most work: bugs without user impact, refactoring, technical debt, performance improvements
+   - "low" - Nice-to-have enhancements, future ideas, minor improvements, cosmetic changes
 4. **Effort**:
    - "small" - Hours (< 1 day)
    - "medium" - Days (1-3 days)
@@ -98,6 +98,15 @@ IMPORTANT RULES:
 - If text mentions "follow-up" or "TODO" or "should", consider it actionable
 - Ignore items already completed or in progress
 - If priority/effort unclear, use "medium"
+
+PRIORITY GUIDELINES (common patterns):
+- "Bug" or "Fix" → medium (unless explicitly critical or blocking)
+- "Refactor" or "Extract" → medium
+- "Security" → high (only urgent if actively exploited)
+- "Performance" or "Optimization" → medium
+- "Enhancement" or "Nice-to-have" → low
+- "Add tests" or "Improve coverage" → medium
+- Phrases like "consider", "might want to", "could be nice" → low
 
 Return ONLY a JSON array of issues, no other text:
 
