@@ -8,7 +8,7 @@ import * as readline from "readline/promises";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const rootDir = join(__dirname, "..");
+const gitlinDir = join(__dirname, "..");
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -47,10 +47,11 @@ function checkGitRepo() {
 }
 
 // Get current repo name
-function getRepoName() {
+function getRepoName(dir = ".") {
   try {
     const remote = execSync("git remote get-url origin", {
       encoding: "utf-8",
+      cwd: dir,
     }).trim();
     // Extract owner/repo from git@github.com:owner/repo.git or https://github.com/owner/repo.git
     const match = remote.match(/github\.com[:/](.+?)(?:\.git)?$/);
@@ -60,15 +61,35 @@ function getRepoName() {
   }
 }
 
-async function main() {
-  // Check prerequisites
-  if (!checkGitRepo()) {
-    console.error("❌ Error: Not in a git repository");
-    console.log(
-      "\nPlease run this command from the root of the repository where you want to install gitlin.",
-    );
-    process.exit(1);
+// Detect target directory for installation
+function getTargetDirectory() {
+  const parentDir = join(gitlinDir, "..");
+
+  // Check if parent is a git repo (meaning gitlin is cloned as subdirectory)
+  try {
+    execSync("git rev-parse --git-dir", { cwd: parentDir, stdio: "ignore" });
+
+    // Check if parent is NOT the gitlin repo itself
+    const parentRepoName = getRepoName(parentDir);
+    const gitlinRepoName = getRepoName(gitlinDir);
+
+    if (parentRepoName && parentRepoName !== gitlinRepoName) {
+      return { dir: parentDir, repoName: parentRepoName };
+    }
+  } catch {
+    // Parent is not a git repo
   }
+
+  // Default to current directory
+  return { dir: process.cwd(), repoName: getRepoName(process.cwd()) };
+}
+
+async function main() {
+  // Detect target directory
+  const target = getTargetDirectory();
+
+  console.log(`📦 Target repository: ${target.repoName || "Unknown"}`);
+  console.log(`📁 Installation directory: ${target.dir}\n`);
 
   const hasGhCli = checkGhCli();
   if (!hasGhCli) {
@@ -78,15 +99,10 @@ async function main() {
     console.log("   For now, we'll just install the workflow file.\n");
   }
 
-  const repoName = getRepoName();
-  if (repoName && hasGhCli) {
-    console.log(`📦 Repository: ${repoName}\n`);
-  }
-
   // Step 1: Install workflow file
   console.log("Step 1: Installing GitHub Action workflow...");
 
-  const workflowDir = join(rootDir, ".github", "workflows");
+  const workflowDir = join(target.dir, ".github", "workflows");
   const workflowFile = join(workflowDir, "gitlin.yml");
 
   if (existsSync(workflowFile)) {
@@ -106,7 +122,7 @@ async function main() {
   if (!hasGhCli) {
     console.log("\n\nStep 2: Setting up secrets (Manual)");
     console.log("\nSince GitHub CLI is not installed, please manually add these secrets:");
-    console.log("Go to: https://github.com/" + (repoName || "YOUR_REPO") + "/settings/secrets/actions\n");
+    console.log("Go to: https://github.com/" + (target.repoName || "YOUR_REPO") + "/settings/secrets/actions\n");
     console.log("Required secrets:");
     console.log("  • LINEAR_API_KEY      - Get from https://linear.app/settings/api");
     console.log("  • LINEAR_TEAM_ID      - Your Linear team ID");
@@ -118,11 +134,11 @@ async function main() {
     );
 
     if (setupSecrets.toLowerCase() !== "n") {
-      await addSecrets();
+      await addSecrets(target.dir);
     } else {
       console.log("\nSkipping secret setup. You can add them manually later:");
       console.log(
-        "Go to: https://github.com/" + repoName + "/settings/secrets/actions",
+        "Go to: https://github.com/" + target.repoName + "/settings/secrets/actions",
       );
     }
   }
@@ -211,7 +227,7 @@ jobs:
   console.log("  ✅ Workflow installed at .github/workflows/gitlin.yml");
 }
 
-async function addSecrets() {
+async function addSecrets(targetDir) {
   console.log("\nEnter your API keys (they will be securely added to GitHub):\n");
 
   const linearApiKey = await rl.question("  LINEAR_API_KEY (from https://linear.app/settings/api): ");
@@ -226,12 +242,15 @@ async function addSecrets() {
   try {
     console.log("\n  Adding secrets to GitHub...");
     execSync(`gh secret set LINEAR_API_KEY --body "${linearApiKey}"`, {
+      cwd: targetDir,
       stdio: "ignore",
     });
     execSync(`gh secret set LINEAR_TEAM_ID --body "${linearTeamId}"`, {
+      cwd: targetDir,
       stdio: "ignore",
     });
     execSync(`gh secret set ANTHROPIC_API_KEY --body "${anthropicApiKey}"`, {
+      cwd: targetDir,
       stdio: "ignore",
     });
     console.log("  ✅ Secrets added successfully!");
