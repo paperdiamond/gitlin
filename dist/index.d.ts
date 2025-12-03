@@ -9,6 +9,11 @@ export declare class Gitlin {
     private octokit;
     constructor(config: GitlinConfig);
     /**
+     * Fetch all comments on a PR (both issue comments and review comments)
+     * Filters out resolved review comment threads
+     */
+    private fetchAllPRComments;
+    /**
      * Process a GitHub comment and create Linear issues
      */
     processComment(context: GitHubContext): Promise<string>;

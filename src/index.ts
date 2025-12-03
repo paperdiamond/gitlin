@@ -20,22 +20,132 @@ export class Gitlin {
   }
 
   /**
+   * Fetch all comments on a PR (both issue comments and review comments)
+   * Filters out resolved review comment threads
+   */
+  private async fetchAllPRComments(
+    owner: string,
+    repo: string,
+    prNumber: number,
+  ): Promise<string[]> {
+    console.log(`Fetching all comments from PR #${prNumber}...`);
+
+    // Fetch issue comments
+    const issueComments = await this.octokit.issues.listComments({
+      owner,
+      repo,
+      issue_number: prNumber,
+    });
+
+    // Fetch review comments
+    const reviewComments = await this.octokit.pulls.listReviewComments({
+      owner,
+      repo,
+      pull_number: prNumber,
+    });
+
+    // Fetch resolution status via GraphQL
+    const query = `
+      query($owner: String!, $repo: String!, $pr: Int!) {
+        repository(owner: $owner, name: $repo) {
+          pullRequest(number: $pr) {
+            reviewThreads(first: 100) {
+              nodes {
+                comments(first: 10) {
+                  nodes { databaseId }
+                }
+                isResolved
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const resolutionData: any = await this.octokit.graphql(query, {
+      owner,
+      repo,
+      pr: prNumber,
+    });
+
+    // Build resolution map (databaseId -> isResolved)
+    const resolutionMap = new Map<number, boolean>();
+    for (const thread of resolutionData.repository.pullRequest.reviewThreads
+      .nodes) {
+      for (const comment of thread.comments.nodes) {
+        if (comment.databaseId) {
+          resolutionMap.set(comment.databaseId, thread.isResolved);
+        }
+      }
+    }
+
+    // Collect all unresolved comments
+    const allComments: string[] = [];
+
+    // Add issue comments (can't be resolved)
+    for (const comment of issueComments.data) {
+      if (comment.body && !comment.body.includes("/create-issues")) {
+        allComments.push(comment.body);
+      }
+    }
+
+    // Add unresolved review comments only
+    for (const comment of reviewComments.data) {
+      const isResolved = resolutionMap.get(comment.id) || false;
+      if (comment.body && !isResolved) {
+        allComments.push(
+          `[${comment.path}:${comment.line}] ${comment.body}`,
+        );
+      }
+    }
+
+    console.log(
+      `Collected ${allComments.length} unresolved comments (${issueComments.data.length} issue comments, ${reviewComments.data.length - (reviewComments.data.length - allComments.length + issueComments.data.length)} unresolved review comments)`,
+    );
+
+    return allComments;
+  }
+
+  /**
    * Process a GitHub comment and create Linear issues
    */
   async processComment(context: GitHubContext): Promise<string> {
     console.log(`Processing comment from ${context.owner}/${context.repo}`);
 
     try {
+      // If this is a PR, fetch all unresolved comments
+      let commentBody = context.commentBody;
+      if (context.prNumber) {
+        const allComments = await this.fetchAllPRComments(
+          context.owner,
+          context.repo,
+          context.prNumber,
+        );
+
+        if (allComments.length === 0) {
+          return "No unresolved comments found on this PR.";
+        }
+
+        // Combine all comments with separators
+        commentBody = allComments.join("\n\n---\n\n");
+        console.log(
+          `Analyzing ${allComments.length} comments (${commentBody.length} characters)`,
+        );
+      }
+
       // Fetch Linear labels BEFORE AI parsing
       const linearLabels = await this.linearClient.getAvailableLabels();
       console.log(`Fetched ${linearLabels.length} Linear labels`);
 
       // Parse issues from comment using AI with label context
       console.log("Parsing issues with AI...");
-      const issues = await this.aiParser.parseIssues(context, linearLabels);
+      const issues = await this.aiParser.parseIssues(
+        { ...context, commentBody },
+        linearLabels,
+      );
 
       if (issues.length === 0) {
-        return "No actionable items found in the comment.";
+        return "No actionable items found in the comments.";
       }
 
       console.log(`Found ${issues.length} actionable items`);

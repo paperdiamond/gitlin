@@ -74,10 +74,13 @@ Go to your repository's Settings → Secrets → Actions and add:
 ### Use It!
 
 Comment `/create-issues` on any PR or issue, and the bot will:
-1. Parse the comment and surrounding context
-2. Extract actionable items using AI
-3. Create Linear issues with full details
-4. Reply with links to the created issues
+1. **Automatically fetch all unresolved comments** on the PR (both issue comments and review comments)
+2. **Filter out resolved review threads** to prevent duplicate issues
+3. Parse all comments and extract actionable items using AI
+4. Create Linear issues with full details
+5. Reply with links to the created issues
+
+**Note:** On PRs, the bot analyzes ALL unresolved comments, not just the one containing `/create-issues`. This means you can add multiple comments throughout a code review, then trigger issue creation with a single `/create-issues` command.
 
 ## Examples
 
@@ -149,11 +152,13 @@ graph LR
 ```
 
 1. **Trigger**: User comments `/create-issues`
-2. **Context**: Bot gathers PR title, description, commits, and comment
-3. **AI Parse**: Claude analyzes content and extracts structured issues
-4. **Validation**: Zod validates the parsed data structure
-5. **Creation**: Linear SDK creates issues with all fields
-6. **Response**: Bot replies with links to created issues
+2. **Fetch**: Bot automatically fetches all unresolved comments on the PR
+3. **Filter**: Resolved review comment threads are skipped
+4. **Context**: Bot gathers PR title, description, and all comment text
+5. **AI Parse**: Claude analyzes content and extracts structured issues
+6. **Validation**: Zod validates the parsed data structure
+7. **Creation**: Linear SDK creates issues with all fields
+8. **Response**: Bot replies with links to created issues
 
 ## Configuration
 
